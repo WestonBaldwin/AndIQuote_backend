@@ -1,38 +1,29 @@
 const express = require("express");
-const sqlite3 = require("sqlite3").verbose();
+const db = require("./db");
+const initSchema = require("./schema");
 
 const app = express();
 app.use(express.json());
 
-const db = new sqlite3.Database("./database.db");
+initSchema();
 
 app.listen(3000, () => {
   console.log("Server running on port 3000");
 });
 
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT NOT NULL,
-      email TEXT NOT NULL
-    )
-  `);
-});
-
 app.post("/users", (req, res) => {
-  const { username, email } = req.body;
+  const { id, username, email } = req.body;
 
   db.run(
-    "INSERT INTO users(username,email) VALUES (?,?)",
-    [username, email],
+    "INSERT INTO users(id, username, email) VALUES (?, ?, ?)",
+    [id, username, email],
     function (err) {
       if (err) {
-        res.status(500).send(err);
+        res.status(500).send(err.message);
         return;
       }
 
-      res.json({ id: this.lastID });
+      res.json({ id });
     }
   );
 });
@@ -40,7 +31,7 @@ app.post("/users", (req, res) => {
 app.get("/users", (req, res) => {
   db.all("SELECT * FROM users", (err, rows) => {
     if (err) {
-      res.status(500).send(err);
+      res.status(500).send(err.message);
       return;
     }
 
